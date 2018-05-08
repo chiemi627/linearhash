@@ -33,11 +33,18 @@ class Slot extends React.Component {
     render() {
       const listBuckets = this.props.slot.buckets.map((bucket)=>
         <li><Bucket bucket={bucket}/></li>);
-      return (
-        <ul className="slot">
-          {listBuckets}
-        </ul>
-      );
+				if(this.props.pointer===1){
+					return (
+        	<ul className="selected-slot">
+          	{listBuckets}
+        	</ul> );
+				}else{
+					return (
+          <ul className="slot">
+            {listBuckets}
+          </ul>
+					);
+				}
     }
 }
 
@@ -65,7 +72,7 @@ class Stage extends React.Component {
 
     handleSubmit(){
       const slots = this.state.slots;
-      const value = parseInt(this.state.insertvalue);
+      const value = parseInt(this.state.insertvalue,10);
       var level = this.state.level;
       var pointer = this.state.pointer;
       const base = this.state.initialslots*Math.pow(2,level);
@@ -151,16 +158,18 @@ class Stage extends React.Component {
     }
 
     render() {
-      const listSlots = this.state.slots.map((slot)=>
-        <li><Slot slot={slot}/></li>
-      );
+
+		  var listSlots = [];
+			for(var i=0;i<this.state.slots.length;i++){
+				var pnt = i === this.state.pointer ? 1 : 0;
+				listSlots.push(<li><Slot slot={this.state.slots[i]} pointer={pnt}/></li>);
+			}
       return (
-        <form action="javascript:void(0)" onSubmit={this.handleSubmit}>
+        <form action="javascript:eval(0)" onSubmit={this.handleSubmit}>
           <input type="text" name="insertvalue" onChange={this.handleChange}/>
           <button type="submit">Insert</button>
           <ul classname="metadata">
             <li>Level = {this.state.level} </li>
-            <li>Split pointer = {this.state.pointer} </li>
           </ul>
           <ol className="stage">
             {listSlots}
