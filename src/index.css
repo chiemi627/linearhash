@@ -11,7 +11,7 @@
   padding:0px !important;
  }
  
- ul.selected-slot {
+ ul.slot[data-slottype="splitpointer"] {
   padding: 10px;
   background: pink;
   width: 80%;
@@ -25,19 +25,9 @@
   align: left;
  }
 
-
- ul.selected-slot li {
-  display: inline-block;
-  padding:0px 10px 0px 10px;
- }
-
  ul.slot li {
   display: inline-block;
   padding:0px 10px 0px 10px;
- }
-
- ul.selected-slot li:before{
-  content: none !important;
  }
 
  ul.slot li:before{

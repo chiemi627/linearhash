@@ -33,18 +33,18 @@ class Slot extends React.Component {
     render() {
       const listBuckets = this.props.slot.buckets.map((bucket)=>
         <li><Bucket bucket={bucket}/></li>);
-				if(this.props.pointer===1){
-					return (
-        	<ul className="selected-slot">
-          	{listBuckets}
-        	</ul> );
-				}else{
-					return (
+      if(this.props.pointer===1){
+        return (
+          <ul className="slot" data-slottype="splitpointer">
+            {listBuckets}
+          </ul> );
+      }else{
+        return (
           <ul className="slot">
             {listBuckets}
           </ul>
-					);
-				}
+        );
+      }
     }
 }
 
@@ -55,17 +55,18 @@ class Stage extends React.Component {
     this.state = {
       insertvalue: null,
       initialslots: 2,
+      bucketsize: 2,
       level: 0,
       pointer: 0,
       slots: [
-        {buckets: [
-          {cells: Array(2).fill(null)}
-        ]},
-        {buckets: [
-          {cells: Array(2).fill(null)}
-        ]}
       ]
     };
+    for(var i=0;i<this.state.initialslots;i++){
+      this.state.slots.push({
+        buckets:[
+          {cells:Array(this.state.bucketsize).fill(null)}
+        ]});
+    }
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
@@ -81,73 +82,68 @@ class Stage extends React.Component {
       if(hashvalue<pointer){
         hashvalue = value % next_base;
       }
-      var cells = [];
       var overflow = false;
-      slots[hashvalue].buckets.forEach((bucket)=>{
-          Array.prototype.push.apply(cells,bucket.cells);
-        });
-      if(!cells.includes(value)){
-        if(cells.includes(null)){
-          for(var i=0;i<slots[hashvalue].buckets.length;i++){
-            const bucket = slots[hashvalue].buckets[i];
-            for(var j=0;j<bucket.cells.length;j++){
-              if(!bucket.cells[j]){
-                if(i>0){overflow=true;}
-                slots[hashvalue].buckets[i].cells[j]=value;
-                break;
-              }
-            }
+      var insert = false;
+
+      insertvalue:
+      for(var i=0;i<slots[hashvalue].buckets.length;i++){
+        const bucket = slots[hashvalue].buckets[i];
+        for(var j=0;j<bucket.cells.length;j++){
+          if(!bucket.cells[j]){ 
+            slots[hashvalue].buckets[i].cells[j]=value;
+            insert = true;
+            break insertvalue;
           }
-        }else{
-          slots[hashvalue].buckets.push(
-            {cells: [value,null]}
-          );
-          overflow=true;
-        }
-        if(overflow){
-          //分割ポインタのあるところを分割する
-          cells=[];
-          slots[pointer].buckets.forEach((bucket)=>{
-              Array.prototype.push.apply(cells,bucket.cells);
-            }
-          );
-          cells = cells.filter(v=>v);
-          console.log("cells="+cells.join(","));
-          slots.push({buckets: [
-                      {cells: Array(2).fill(null)}
-                     ]});
-          slots[pointer]={buckets: [                  
-                      {cells: Array(2).fill(null)}
-                     ]};
-          console.log("pointer="+pointer);
-          cells.forEach((cell)=>{
-            var index = cell%next_base;
-            var inserted = false;
-            for(var i=0;i<slots[index].buckets.length;i++){
-              console.log("index="+index);
-              const bucket = slots[index].buckets[i];
-              for(var j=0;j<bucket.cells.length;j++){
-                if(!bucket.cells[j]){
-                  slots[index].buckets[i].cells[j]=cell;
-                  inserted = true;
-                  break; 
-                }
-              }
-            }
-            if(!inserted){
-              slots[index].buckets.push({cells:[cell,null]});
-            }
-          });
-          pointer++;
-          if(pointer===base){
-            level++;
-            pointer=0;
-          }
-          this.setState({pointer:pointer});
-          this.setState({level:level});       
         }
       }
-
+      //overflowバケットを用意してそこに入れる
+      if(!insert){
+        const overflowbucket = {cells: Array(this.state.bucketsize).fill(null)};
+        overflowbucket.cells[0]=value;
+        slots[hashvalue].buckets.push(overflowbucket);
+      }
+      if(slots[hashvalue].buckets.length>1){
+        //分割ポインタのあるところを分割する
+        var cells=[];
+        slots[pointer].buckets.forEach((bucket)=>{
+            Array.prototype.push.apply(cells,bucket.cells);
+          }
+        );
+        cells = cells.filter(v=>v);
+        console.log("cells="+cells.join(","));
+        slots.push({buckets: [
+                      {cells: Array(this.state.bucketsize).fill(null)}
+                     ]});
+        slots[pointer]={buckets: [                  
+                      {cells: Array(this.state.bucketsize).fill(null)}
+                     ]};
+        cells.forEach((cell)=>{
+          var index = cell%next_base;
+          var inserted = false;
+          for(var i=0;i<slots[index].buckets.length;i++){
+            const bucket = slots[index].buckets[i];
+            for(var j=0;j<bucket.cells.length;j++){
+              if(!bucket.cells[j]){
+                slots[index].buckets[i].cells[j]=cell;
+                inserted = true;
+                break; 
+              }
+            }
+          }
+          if(!inserted){
+            var bucket = {cells:Array(this.state.bucketsize).fill(null)};
+            bucket.cells[0]=cell;
+            slots[index].buckets.push(bucket);
+          }
+        });
+        pointer++;
+        if(pointer===base){
+          level++;
+          pointer=0;
+        }
+        this.setState({pointer:pointer});
+        this.setState({level:level});
+      }
       this.setState({slots: slots});
     }
 
@@ -158,12 +154,12 @@ class Stage extends React.Component {
     }
 
     render() {
-
-		  var listSlots = [];
-			for(var i=0;i<this.state.slots.length;i++){
-				var pnt = i === this.state.pointer ? 1 : 0;
-				listSlots.push(<li><Slot slot={this.state.slots[i]} pointer={pnt}/></li>);
-			}
+      var listSlots = [];
+      for(var i=0;i<this.state.slots.length;i++){
+        var pnt = i === this.state.pointer ? 1 : 0;
+        listSlots.push(<li><Slot slot={this.state.slots[i]} 
+                        pointer={pnt}/></li>);
+      }
       return (
         <form action="javascript:eval(0)" onSubmit={this.handleSubmit}>
           <input type="text" name="insertvalue" onChange={this.handleChange}/>
